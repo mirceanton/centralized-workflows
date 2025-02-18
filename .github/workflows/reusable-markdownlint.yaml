@@ -5,36 +5,37 @@ name: Reusable - Markdown Lint
 on:
   workflow_call:
     inputs:
-      node-version:
-        description: "Node.js version"
+      working-directory:
+        description: "The directory to lint"
         type: string
         required: false
-        default: "latest"
-      markdownlint-cli-version:
-        description: "markdownlint-cli version"
+        default: "."
+      config-file:
+        description: "Path to the markdownlint config file"
         type: string
         required: false
-        default: "latest"
-      markdownlint-flags:
-        description: "Extra flags to pass to markdownlint"
+        default: ".markdownlint.yaml"
+      extra-flags:
+        description: "Additional CLI flags for markdownlint"
         type: string
         required: false
         default: ""
 
 jobs:
-  release:
+  markdownlint:
     runs-on: ubuntu-latest
+    container: docker.io/library/node:23-bookworm
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Checkout repository
+        uses: actions/checkout@v4.2.2
 
-      - name: Install Node.js
-        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
-        with:
-          node-version: "${{ inputs.node-version }}"
+      - name: Install MarkdownLint
+        run: |
+          npm install -g markdownlint-cli
+          npm list -g --depth=0
 
-      - name: Install markdownlint-cli
-        run: npm install -g markdownlint-cli@${{ inputs.markdownlint-cli-version }}
-
-      - name: Run markdownlint
-        run: find . -name "*.md" -exec markdownlint ${{ inputs.markdownlint-flags }} {} +
+      - name: Run MarkdownLint
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          npx markdownlint "**/*.md" --dot --config ${{ inputs.config-file }} ${{ inputs.extra-flags }}
